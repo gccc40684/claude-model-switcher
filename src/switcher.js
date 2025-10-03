@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import inquirer from 'inquirer';
+import { spawn } from 'child_process';
 import { ModelConfig } from './config.js';
 
 export class ModelSwitcher {
@@ -69,7 +70,7 @@ export class ModelSwitcher {
       }
 
       console.log(chalk.yellow('🚀 Environment updated! Claude Code is now ready to use with ' + models[modelName].name));
-      console.log(chalk.gray('💡 You can now use Claude Code commands directly'));
+      console.log(chalk.gray('💡 Starting Claude Code...'));
 
       // Test connection
       console.log(chalk.blue('🔍 Testing connection...'));
@@ -80,6 +81,9 @@ export class ModelSwitcher {
       } else {
         console.log(chalk.yellow('⚠️  Connection test failed (this might be normal for some models)'));
       }
+
+      // Launch Claude Code application
+      await this.launchClaudeApp(models[modelName].name);
 
       return true;
     } catch (error) {
@@ -447,6 +451,33 @@ export class ModelSwitcher {
       return true;
     } catch (error) {
       console.log(chalk.red(`❌ Error editing model: ${error.message}`));
+      return false;
+    }
+  }
+
+  async launchClaudeApp(modelName) {
+    try {
+      console.log(chalk.blue(`🚀 Launching Claude CLI with ${modelName}...`));
+
+      // Launch claude command in the current terminal
+      const claude = spawn('claude', [], {
+        stdio: 'inherit',
+        env: process.env,
+        shell: true
+      });
+
+      claude.on('error', (error) => {
+        console.log(chalk.red(`❌ Error launching Claude: ${error.message}`));
+        console.log(chalk.yellow('💡 Please run "claude" manually to start the CLI'));
+      });
+
+      // Don't wait for claude to exit, just let it run
+      claude.unref();
+
+      return true;
+    } catch (error) {
+      console.log(chalk.red(`❌ Error launching Claude: ${error.message}`));
+      console.log(chalk.yellow('💡 Please run "claude" manually to start the CLI'));
       return false;
     }
   }
