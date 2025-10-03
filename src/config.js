@@ -12,64 +12,50 @@ export class ModelConfig {
       claude: {
         name: 'Claude (Anthropic)',
         baseUrl: 'https://api.anthropic.com',
-        envVars: {
-          ANTHROPIC_BASE_URL: 'https://api.anthropic.com',
-          ANTHROPIC_API_KEY: ''
-        },
+        apiKeyName: 'ANTHROPIC_API_KEY',
+        apiKey: '',
         defaultModel: 'claude-3-5-sonnet-20241022'
       },
       gemini: {
         name: 'Gemini (Google)',
         baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-        envVars: {
-          ANTHROPIC_BASE_URL: 'https://generativelanguage.googleapis.com/v1beta',
-          GEMINI_API_KEY: ''
-        },
+        apiKeyName: 'GEMINI_API_KEY',
+        apiKey: '',
         defaultModel: 'gemini-2.0-flash-exp'
       },
       deepseek: {
         name: 'DeepSeek',
         baseUrl: 'https://api.deepseek.com',
-        envVars: {
-          ANTHROPIC_BASE_URL: 'https://api.deepseek.com',
-          DEEPSEEK_API_KEY: ''
-        },
+        apiKeyName: 'DEEPSEEK_API_KEY',
+        apiKey: '',
         defaultModel: 'deepseek-chat'
       },
       qwen: {
         name: 'Qwen (Alibaba)',
         baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-        envVars: {
-          ANTHROPIC_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-          QWEN_API_KEY: ''
-        },
+        apiKeyName: 'QWEN_API_KEY',
+        apiKey: '',
         defaultModel: 'qwen-max'
       },
       kimi: {
         name: 'Kimi (Moonshot)',
         baseUrl: 'https://api.moonshot.cn/v1',
-        envVars: {
-          ANTHROPIC_BASE_URL: 'https://api.moonshot.cn/v1',
-          MOONSHOT_API_KEY: ''
-        },
+        apiKeyName: 'MOONSHOT_API_KEY',
+        apiKey: '',
         defaultModel: 'moonshot-v1-8k'
       },
       glm: {
         name: 'GLM 4.5 (ZhipuAI)',
         baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-        envVars: {
-          ANTHROPIC_BASE_URL: 'https://open.bigmodel.cn/api/paas/v4',
-          GLM_API_KEY: ''
-        },
+        apiKeyName: 'GLM_API_KEY',
+        apiKey: '',
         defaultModel: 'glm-4-plus'
       },
       ollama: {
         name: 'Ollama (Local)',
         baseUrl: 'http://localhost:11434/v1',
-        envVars: {
-          ANTHROPIC_BASE_URL: 'http://localhost:11434/v1',
-          OLLAMA_API_KEY: 'ollama'
-        },
+        apiKeyName: null,
+        apiKey: 'ollama',
         defaultModel: 'llama3.2'
       }
     };
@@ -84,13 +70,53 @@ export class ModelConfig {
       await this.ensureConfigDir();
       if (await fs.pathExists(this.configFile)) {
         const config = await fs.readJson(this.configFile);
-        return { ...this.models, ...config };
+
+        // Migrate old config format to new format if needed
+        const migratedConfig = this.migrateConfig(config);
+
+        // Merge with default models, preserving user data
+        const mergedConfig = { ...this.models };
+        Object.keys(migratedConfig).forEach(key => {
+          if (mergedConfig[key]) {
+            mergedConfig[key] = { ...mergedConfig[key], ...migratedConfig[key] };
+          } else {
+            mergedConfig[key] = migratedConfig[key];
+          }
+        });
+
+        return mergedConfig;
       }
       return this.models;
     } catch (error) {
       console.error('Error loading config:', error);
       return this.models;
     }
+  }
+
+  migrateConfig(config) {
+    const migratedConfig = {};
+
+    Object.keys(config).forEach(modelName => {
+      const model = config[modelName];
+
+      // Check if it's old format (has envVars)
+      if (model.envVars) {
+        // Migrate from old format
+        const apiKeyName = Object.keys(model.envVars).find(key => key !== 'ANTHROPIC_BASE_URL');
+        migratedConfig[modelName] = {
+          name: model.name,
+          baseUrl: model.baseUrl,
+          apiKeyName: apiKeyName,
+          apiKey: apiKeyName ? model.envVars[apiKeyName] || '' : null,
+          defaultModel: model.defaultModel
+        };
+      } else {
+        // Already new format or partial config
+        migratedConfig[modelName] = model;
+      }
+    });
+
+    return migratedConfig;
   }
 
   async saveConfig(config) {
@@ -138,37 +164,76 @@ export class ModelConfig {
     }
 
     const model = models[modelName];
-    const envFile = path.join(os.homedir(), '.zshrc');
 
-    try {
-      let envContent = '';
-      if (await fs.pathExists(envFile)) {
-        envContent = await fs.readFile(envFile, 'utf8');
-      }
+    // Set environment variables for current process
+    process.env.ANTHROPIC_BASE_URL = model.baseUrl;
 
-      const lines = envContent.split('\n');
-      const filteredLines = lines.filter(line =>
-        !line.includes('ANTHROPIC_BASE_URL') &&
-        !line.includes('ANTHROPIC_API_KEY') &&
-        !line.includes('# Claude Model Switcher')
-      );
-
-      filteredLines.push('');
-      filteredLines.push('# Claude Model Switcher - Auto Generated');
-      filteredLines.push(`export ANTHROPIC_BASE_URL="${model.baseUrl}"`);
-
-      Object.entries(model.envVars).forEach(([key, value]) => {
-        if (key !== 'ANTHROPIC_BASE_URL' && value) {
-          filteredLines.push(`export ${key}="${value}"`);
-        }
-      });
-
-      await fs.writeFile(envFile, filteredLines.join('\n'));
-      return true;
-    } catch (error) {
-      console.error('Error updating environment:', error);
-      return false;
+    // Always use ANTHROPIC_API_KEY for Claude Code compatibility
+    if (model.apiKey) {
+      process.env.ANTHROPIC_API_KEY = model.apiKey;
     }
+
+    // Also update shell configuration files for future sessions
+    await this.updateShellConfig(model);
+
+    // Create a temporary env file that can be sourced
+    await this.createTempEnvFile(model);
+
+    return true;
+  }
+
+  async updateShellConfig(model) {
+    const shells = ['~/.zshrc', '~/.bashrc', '~/.bash_profile'];
+
+    for (const shellFile of shells) {
+      const expandedPath = shellFile.replace('~', os.homedir());
+
+      try {
+        let envContent = '';
+        if (await fs.pathExists(expandedPath)) {
+          envContent = await fs.readFile(expandedPath, 'utf8');
+        }
+
+        const lines = envContent.split('\n');
+        const filteredLines = lines.filter(line =>
+          !line.includes('ANTHROPIC_BASE_URL') &&
+          !line.includes('ANTHROPIC_API_KEY') &&
+          !line.includes('# Claude Model Switcher')
+        );
+
+        filteredLines.push('');
+        filteredLines.push('# Claude Model Switcher - Auto Generated');
+        filteredLines.push(`export ANTHROPIC_BASE_URL="${model.baseUrl}"`);
+
+        if (model.apiKey) {
+          filteredLines.push(`export ANTHROPIC_API_KEY="${model.apiKey}"`);
+        }
+
+        await fs.writeFile(expandedPath, filteredLines.join('\n'));
+      } catch (error) {
+        // Ignore errors for shell files that don't exist
+        continue;
+      }
+    }
+  }
+
+  async createTempEnvFile(model) {
+    const tempEnvFile = path.join(this.configDir, 'current-env.sh');
+
+    const envLines = [
+      '#!/bin/bash',
+      '# Claude Model Switcher - Current Environment',
+      `export ANTHROPIC_BASE_URL="${model.baseUrl}"`
+    ];
+
+    if (model.apiKey) {
+      envLines.push(`export ANTHROPIC_API_KEY="${model.apiKey}"`);
+    }
+
+    await fs.writeFile(tempEnvFile, envLines.join('\n') + '\n');
+    await fs.chmod(tempEnvFile, '755');
+
+    return tempEnvFile;
   }
 
   async testConnection(modelName) {

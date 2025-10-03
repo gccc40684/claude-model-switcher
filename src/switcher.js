@@ -38,7 +38,15 @@ export class ModelSwitcher {
       await this.config.updateEnvironment(modelName);
 
       console.log(chalk.green(`✅ Successfully switched to ${models[modelName].name}`));
-      console.log(chalk.yellow('📝 Please restart your terminal or run: source ~/.zshrc'));
+      console.log(chalk.blue(`🔗 Base URL: ${models[modelName].baseUrl}`));
+
+      // Check API key status
+      if (updatedModels[modelName].apiKey) {
+        console.log(chalk.green(`🔑 API Key configured`));
+      }
+
+      console.log(chalk.yellow('🚀 Environment updated! Claude Code is now ready to use with ' + models[modelName].name));
+      console.log(chalk.gray('💡 You can now use Claude Code commands directly'));
 
       // Test connection
       console.log(chalk.blue('🔍 Testing connection...'));
@@ -123,13 +131,13 @@ export class ModelSwitcher {
 
   async checkAndRequestApiKey(modelName, models) {
     const model = models[modelName];
-    const apiKeyName = Object.keys(model.envVars).find(key => key !== 'ANTHROPIC_BASE_URL');
 
-    if (!apiKeyName) {
-      return true; // No API key needed (like Ollama)
+    // Ollama doesn't need API key
+    if (!model.apiKeyName) {
+      return true;
     }
 
-    const currentApiKey = model.envVars[apiKeyName];
+    const currentApiKey = model.apiKey;
 
     if (!currentApiKey || currentApiKey === '') {
       console.log(chalk.yellow(`🔑 ${model.name} requires an API key`));
@@ -164,7 +172,7 @@ export class ModelSwitcher {
       ]);
 
       // Update and save the API key
-      models[modelName].envVars[apiKeyName] = apiKey.trim();
+      models[modelName].apiKey = apiKey.trim();
       await this.config.saveConfig(models);
       console.log(chalk.green(`✅ API key saved for ${model.name}`));
     }
@@ -193,17 +201,15 @@ export class ModelSwitcher {
         }
       ]);
 
-      const apiKeyName = Object.keys(model.envVars).find(key => key !== 'ANTHROPIC_BASE_URL');
-      let apiKey = '';
-
-      if (apiKeyName) {
+      let apiKey = model.apiKey;
+      if (model.apiKeyName) {
         const result = await inquirer.prompt([
           {
             type: 'password',
             name: 'apiKey',
-            message: `API Key (${apiKeyName}):`,
+            message: `API Key:`,
             mask: '*',
-            default: model.envVars[apiKeyName] || ''
+            default: model.apiKey || ''
           }
         ]);
         apiKey = result.apiKey;
@@ -211,9 +217,8 @@ export class ModelSwitcher {
 
       // Update configuration
       models[modelName].baseUrl = baseUrl;
-      models[modelName].envVars.ANTHROPIC_BASE_URL = baseUrl;
-      if (apiKeyName && apiKey) {
-        models[modelName].envVars[apiKeyName] = apiKey;
+      if (apiKey) {
+        models[modelName].apiKey = apiKey;
       }
 
       await this.config.saveConfig(models);

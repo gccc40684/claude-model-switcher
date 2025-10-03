@@ -2,14 +2,38 @@
 
 多模型AI API切换器，支持Claude、Gemini、DeepSeek、Qwen、Kimi、GLM 4.5和Ollama本地模型。
 
-## 功能特性
+## 核心特性
 
-- 🚀 一键切换多个AI模型
-- 🔧 自动配置环境变量
-- 💾 持久化配置存储
-- 🎯 命令行友好界面
-- 🔍 连接测试功能
-- 📱 交互式模型选择
+- 🔐 **智能API密钥管理**：每个模型独立保存API密钥，切换时不会覆盖
+- ⚡ **即时生效**：切换后立即在当前终端会话中生效，无需重启
+- 🔄 **无缝切换**：支持7个主流AI模型一键切换
+- 💾 **持久化存储**：API密钥配置一次永久保存
+- ⚙️ **灵活配置**：使用 `-e` 标志随时编辑任何模型的配置
+- 🚀 **零干扰**：Claude原生API密钥完全保留，切换回来时自动恢复
+
+## 工作原理
+
+程序通过以下方式确保API密钥不会互相覆盖：
+
+1. **独立存储**：每个模型的API密钥单独保存在配置文件中
+2. **动态映射**：切换时将当前模型的API密钥映射到 `ANTHROPIC_API_KEY`
+3. **环境隔离**：Claude Code始终使用 `ANTHROPIC_API_KEY`，但实际指向不同模型的密钥
+4. **即时应用**：环境变量在当前shell会话中立即生效
+
+**示例场景：**
+```bash
+# 配置Claude原生API
+./claude claude
+? Enter API key: sk-ant-api-your-claude-key
+
+# 切换到Kimi（会要求输入Kimi API密钥）
+./claude kimi
+? Enter API key: sk-moonshot-your-kimi-key
+
+# 切换回Claude（自动使用之前保存的Claude API密钥）
+./claude claude
+✅ Claude API密钥自动恢复，无需重新输入！
+```
 
 ## 支持的模型
 

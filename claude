@@ -27,16 +27,22 @@ case "$MODEL_NAME" in
             echo "🔄 Switching to $MODEL_NAME..."
             node "$SCRIPT_DIR/src/index.js" "$MODEL_NAME"
 
-            # Source the updated environment if switching was successful
-            if [ $? -eq 0 ]; then
-                echo "📝 Updating current shell environment..."
-                if [ -f ~/.zshrc ]; then
-                    source ~/.zshrc 2>/dev/null || true
+            # Apply environment variables to current shell session
+            ENV_FILE="$HOME/.claude-model-switcher/current-env.sh"
+            if [ -f "$ENV_FILE" ]; then
+                echo "📝 Applying environment variables to current session..."
+                source "$ENV_FILE"
+                echo "✅ Environment variables applied"
+                echo "🚀 Claude Code is now using $MODEL_NAME"
+
+                # Display current environment status
+                echo "📊 Current configuration:"
+                echo "   ANTHROPIC_BASE_URL: $ANTHROPIC_BASE_URL"
+                if [ -n "$ANTHROPIC_API_KEY" ]; then
+                    echo "   ANTHROPIC_API_KEY: ***${ANTHROPIC_API_KEY: -4}"
                 fi
-                if [ -f ~/.bashrc ]; then
-                    source ~/.bashrc 2>/dev/null || true
-                fi
-                echo "✅ Environment updated for current session"
+            else
+                echo "⚠️  Environment file not found, please try again"
             fi
         fi
         ;;
@@ -56,6 +62,22 @@ case "$MODEL_NAME" in
         else
             echo "🔄 Attempting to switch to $MODEL_NAME..."
             node "$SCRIPT_DIR/src/index.js" "$MODEL_NAME"
+
+            # Apply environment variables if switch was successful
+            ENV_FILE="$HOME/.claude-model-switcher/current-env.sh"
+            if [ -f "$ENV_FILE" ]; then
+                echo "📝 Applying environment variables to current session..."
+                source "$ENV_FILE"
+                echo "✅ Environment variables applied"
+                echo "🚀 Claude Code is now using $MODEL_NAME"
+
+                # Display current environment status
+                echo "📊 Current configuration:"
+                echo "   ANTHROPIC_BASE_URL: $ANTHROPIC_BASE_URL"
+                if [ -n "$ANTHROPIC_API_KEY" ]; then
+                    echo "   ANTHROPIC_API_KEY: ***${ANTHROPIC_API_KEY: -4}"
+                fi
+            fi
         fi
         ;;
 esac
