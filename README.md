@@ -37,15 +37,31 @@
 
 ## 支持的模型
 
-| 模型 | 提供商 | 类型 |
-|------|-------|------|
-| Claude | Anthropic | 云端API |
-| Gemini | Google | 云端API |
-| DeepSeek | DeepSeek | 云端API |
-| Qwen | 阿里巴巴 | 云端API |
-| Kimi | Moonshot | 云端API |
-| GLM 4.5 | 智谱AI | 云端API |
-| Ollama | 本地 | 本地模型 |
+### 内置模型
+
+| 模型 | 提供商 | 类型 | API格式 |
+|------|-------|------|---------|
+| Claude | Anthropic | 云端API | Claude API |
+| Gemini | Google | 云端API | Gemini API |
+| DeepSeek | DeepSeek | 云端API | OpenAI兼容 |
+| Qwen | 阿里巴巴 | 云端API | OpenAI兼容 |
+| Kimi | Moonshot | 云端API | OpenAI兼容 |
+| GLM 4.5 | 智谱AI | 云端API | OpenAI兼容 |
+| Ollama | 本地 | 本地模型 | OpenAI兼容 |
+
+### 自定义模型
+
+**支持任何OpenAI兼容的API服务**，包括但不限于：
+- 各种云端AI服务商的OpenAI兼容接口
+- 私有部署的AI模型服务
+- 本地运行的AI模型（如通过vLLM、Ollama等）
+- 第三方AI代理服务
+
+**自定义模型特性：**
+- 🎯 **灵活配置**：自定义名称、描述、API端点
+- 🔑 **独立密钥**：每个自定义模型独立保存API密钥
+- ⚙️ **完整管理**：支持创建、编辑、删除自定义模型
+- 🔄 **无缝切换**：与内置模型完全一致的切换体验
 
 ## 安装
 
@@ -79,13 +95,46 @@ chmod +x claude
 ./claude ollama      # 切换到Ollama（本地，无需API key）
 ```
 
+### 自定义模型
+
+```bash
+# 创建自定义模型（会引导你输入配置信息）
+./claude myapi        # 创建名为"myapi"的自定义模型
+
+# 列出所有自定义模型
+./claude custom
+
+# 编辑自定义模型配置
+./claude myapi -e     # 编辑名为"myapi"的自定义模型
+
+# 删除自定义模型
+./claude delete myapi # 删除名为"myapi"的自定义模型
+```
+
+**自定义模型创建流程：**
+```bash
+$ ./claude myapi
+❌ Unknown model: myapi
+? Would you like to create a custom model named 'myapi'? Yes
+🔧 Creating custom model: myapi
+
+? Display name for this model: My Private API
+? Description (optional): My company's private AI API
+? API Base URL (must be OpenAI compatible): https://api.mycompany.com/v1
+? API Key: sk-mycompany-api-key-xxx
+✅ Custom model 'myapi' created successfully
+```
+
 ### 编辑配置
 
 ```bash
-# 编辑模型配置（API key和URL）
+# 编辑内置模型配置（API key和URL）
 ./claude kimi -e     # 编辑Kimi的API key和URL
 ./claude deepseek -e # 编辑DeepSeek的配置
 ./claude qwen -e     # 编辑Qwen的配置
+
+# 编辑自定义模型配置（支持修改所有字段）
+./claude myapi -e    # 编辑自定义模型的名称、描述、URL、API key
 ```
 
 ### 其他命令

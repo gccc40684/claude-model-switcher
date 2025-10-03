@@ -49,6 +49,17 @@ case "$MODEL_NAME" in
     "list"|"ls")
         node "$SCRIPT_DIR/src/index.js" list
         ;;
+    "custom")
+        node "$SCRIPT_DIR/src/index.js" custom
+        ;;
+    "delete")
+        if [ -z "$2" ]; then
+            echo "❌ Please specify a model to delete"
+            echo "Usage: claude delete <model-name>"
+            exit 1
+        fi
+        node "$SCRIPT_DIR/src/index.js" delete "$2"
+        ;;
     "current"|"c")
         node "$SCRIPT_DIR/src/index.js" current
         ;;

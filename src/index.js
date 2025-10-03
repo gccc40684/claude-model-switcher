@@ -21,6 +21,19 @@ async function main() {
       await switcher.listModels();
       break;
 
+    case 'custom':
+      await switcher.listCustomModels();
+      break;
+
+    case 'delete':
+      if (args.length < 2) {
+        console.log('❌ Please specify a model to delete');
+        console.log('Usage: claude delete <model-name>');
+        return;
+      }
+      await switcher.deleteCustomModel(args[1]);
+      break;
+
     case 'current':
     case 'c':
       await switcher.getCurrentModel();
