@@ -1,0 +1,25 @@
+{
+  "name": "claude-model-switcher",
+  "version": "1.0.0",
+  "description": "Multi-model AI API switcher for Claude Code",
+  "main": "src/index.js",
+  "type": "module",
+  "bin": {
+    "claude-switcher": "src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "cli": "node src/cli.js",
+    "install-global": "npm install -g ."
+  },
+  "dependencies": {
+    "commander": "^11.1.0",
+    "inquirer": "^9.2.12",
+    "chalk": "^5.3.0",
+    "fs-extra": "^11.1.1",
+    "node-fetch": "^3.3.2"
+  },
+  "keywords": ["ai", "api", "claude", "gemini", "ollama", "deepseek", "qwen", "kimi", "glm"],
+  "author": "Claude Code User",
+  "license": "MIT"
+}

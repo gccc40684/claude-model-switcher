@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# Claude Model Switcher - Quick Switch Script
+# Usage: claude <model_name> [-e]
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ $# -eq 0 ]; then
+    node "$SCRIPT_DIR/src/index.js" help
+    exit 0
+fi
+
+MODEL_NAME="$1"
+EDIT_FLAG=""
+
+# Check for edit flag
+if [ "$2" = "-e" ] || [ "$2" = "--edit" ]; then
+    EDIT_FLAG="-e"
+fi
+
+case "$MODEL_NAME" in
+    "claude"|"gemini"|"deepseek"|"qwen"|"kimi"|"glm"|"ollama")
+        if [ -n "$EDIT_FLAG" ]; then
+            echo "🔧 Editing configuration for $MODEL_NAME..."
+            node "$SCRIPT_DIR/src/index.js" "$MODEL_NAME" "$EDIT_FLAG"
+        else
+            echo "🔄 Switching to $MODEL_NAME..."
+            node "$SCRIPT_DIR/src/index.js" "$MODEL_NAME"
+
+            # Source the updated environment if switching was successful
+            if [ $? -eq 0 ]; then
+                echo "📝 Updating current shell environment..."
+                if [ -f ~/.zshrc ]; then
+                    source ~/.zshrc 2>/dev/null || true
+                fi
+                if [ -f ~/.bashrc ]; then
+                    source ~/.bashrc 2>/dev/null || true
+                fi
+                echo "✅ Environment updated for current session"
+            fi
+        fi
+        ;;
+    "list"|"ls")
+        node "$SCRIPT_DIR/src/index.js" list
+        ;;
+    "current"|"c")
+        node "$SCRIPT_DIR/src/index.js" current
+        ;;
+    "help"|"h"|"--help")
+        node "$SCRIPT_DIR/src/index.js" help
+        ;;
+    *)
+        if [ -n "$EDIT_FLAG" ]; then
+            echo "🔧 Editing configuration for $MODEL_NAME..."
+            node "$SCRIPT_DIR/src/index.js" "$MODEL_NAME" "$EDIT_FLAG"
+        else
+            echo "🔄 Attempting to switch to $MODEL_NAME..."
+            node "$SCRIPT_DIR/src/index.js" "$MODEL_NAME"
+        fi
+        ;;
+esac
