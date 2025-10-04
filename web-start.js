@@ -2,7 +2,7 @@
 
 import WebServer from './src/web-server.js';
 
-console.log('🚀 Starting Claude Model Switcher Web UI...');
+console.log('🚀 Starting Claude Code AI Model Hub Web UI...');
 console.log('📱 Opening H5 interface at http://localhost:3000');
 console.log('');
 

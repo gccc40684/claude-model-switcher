@@ -4,15 +4,16 @@ createApp({
   data() {
     return {
       // UI状态
-      activeTab: 'models',
       loading: true,
       error: null,
       success: null,
+      searchQuery: '',
 
       // 数据
       models: {},
       activeModel: null,
       modelStatuses: {},
+      filteredModels: {},
 
       // 操作状态
       switchingModel: null,
@@ -67,6 +68,7 @@ createApp({
         if (result.success) {
           this.models = result.data.models;
           this.activeModel = result.data.activeModel;
+          this.filteredModels = this.models;
 
           // 初始化模型状态
           Object.keys(this.models).forEach(key => {
@@ -84,6 +86,76 @@ createApp({
       } finally {
         this.loading = false;
       }
+    },
+
+    // 搜索过滤
+    filterModels() {
+      const query = this.searchQuery.toLowerCase().trim();
+      if (!query) {
+        this.filteredModels = this.models;
+        return;
+      }
+
+      const filtered = {};
+      Object.entries(this.models).forEach(([key, model]) => {
+        const searchText = `${model.name} ${key} ${model.baseUrl}`.toLowerCase();
+        if (searchText.includes(query)) {
+          filtered[key] = model;
+        }
+      });
+      this.filteredModels = filtered;
+    },
+
+    // 获取模型图标
+    getModelIcon(key) {
+      const icons = {
+        claude: '🔮',
+        gemini: '♊',
+        deepseek: '🎯',
+        qwen: '☁️',
+        kimi: '🌙',
+        glm: '🧠',
+        ollama: '🦙'
+      };
+      return icons[key] || '🤖';
+    },
+
+    // 获取模型提供商
+    getModelProvider(key) {
+      const providers = {
+        claude: 'Anthropic',
+        gemini: 'Google',
+        deepseek: 'DeepSeek',
+        qwen: 'Alibaba',
+        kimi: 'Moonshot',
+        glm: 'ZhipuAI',
+        ollama: 'Local'
+      };
+      return providers[key] || 'Custom';
+    },
+
+    // 获取模型类型
+    getModelType(key) {
+      const types = {
+        claude: 'Claude API',
+        gemini: 'Gemini API',
+        deepseek: 'OpenAI Compatible',
+        qwen: 'OpenAI Compatible',
+        kimi: 'OpenAI Compatible',
+        glm: 'OpenAI Compatible',
+        ollama: 'Local Model'
+      };
+      return types[key] || 'OpenAI Compatible';
+    },
+
+    // 获取状态类名
+    getStatusClass(key) {
+      const status = this.modelStatuses[key];
+      return {
+        'status-connected': status === 'connected',
+        'status-disconnected': status === 'disconnected',
+        'status-testing': status === 'testing'
+      };
     },
 
     // 切换模型
@@ -303,16 +375,6 @@ createApp({
       } else if (type === 'error') {
         this.error = message;
         setTimeout(() => this.error = null, 5000);
-      }
-    },
-
-    getStatusColor(status) {
-      switch (status) {
-        case 'connected': return '#07c160';
-        case 'disconnected': return '#969799';
-        case 'testing': return '#ff976a';
-        case 'error': return '#ee0a24';
-        default: return '#c8c9cc';
       }
     },
 

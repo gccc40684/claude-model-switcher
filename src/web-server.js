@@ -257,7 +257,7 @@ export class WebServer {
         if (error) {
           reject(error);
         } else {
-          console.log(`🚀 Claude Model Switcher Web UI`);
+          console.log(`🚀 Claude Code AI Model Hub Web UI`);
           console.log(`📱 Server running at: http://localhost:${this.port}`);
           console.log(`🌐 API endpoints available at: http://localhost:${this.port}/api/`);
           console.log('\n📋 Available API endpoints:');
