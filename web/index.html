@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Model Switcher - Web UI</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vant@4/lib/index.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f7f8fa;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            background-color: #f7f8fa;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .model-card {
+            margin: 10px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+
+        .model-header {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .model-info {
+            flex: 1;
+        }
+
+        .model-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #323233;
+            margin-bottom: 4px;
+        }
+
+        .model-url {
+            font-size: 12px;
+            color: #969799;
+            word-break: break-all;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 10px;
+        }
+
+        .status-active {
+            background-color: #07c160;
+            box-shadow: 0 0 8px rgba(7, 193, 96, 0.4);
+        }
+
+        .status-inactive {
+            background-color: #c8c9cc;
+        }
+
+        .status-testing {
+            background-color: #ff976a;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .model-actions {
+            padding: 12px 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #323233;
+        }
+
+        .btn-secondary:active {
+            background: #e0e0e0;
+        }
+
+        .btn-danger {
+            background: #ee0a24;
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #969799;
+        }
+
+        .error-message {
+            background: #fff1f0;
+            border: 1px solid #ffccc7;
+            color: #ff4d4f;
+            padding: 12px;
+            margin: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .success-message {
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            color: #52c41a;
+            padding: 12px;
+            margin: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #ebedf0;
+            display: flex;
+            z-index: 1000;
+        }
+
+        .tab-item {
+            flex: 1;
+            padding: 10px 5px;
+            text-align: center;
+            font-size: 12px;
+            color: #646566;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .tab-item.active {
+            color: #667eea;
+        }
+
+        .tab-icon {
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+
+        .content-area {
+            padding-bottom: 60px;
+        }
+
+        .config-form {
+            padding: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #323233;
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ebedf0;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .status-panel {
+            background: white;
+            margin: 10px;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .floating-action-btn {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+            z-index: 100;
+        }
+
+        .floating-action-btn:active {
+            transform: scale(0.95);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .model-card {
+                margin: 8px;
+            }
+
+            .model-actions {
+                padding: 10px 12px;
+            }
+
+            .action-btn {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="app-container">
+            <!-- Header -->
+            <div class="header">
+                <h1>🤖 Claude Model Switcher</h1>
+                <p>AI模型配置管理中心</p>
+            </div>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Loading State -->
+                <div v-if="loading" class="loading">
+                    <div>加载中...</div>
+                </div>
+
+                <!-- Error Message -->
+                <div v-if="error" class="error-message">
+                    {{ error }}
+                </div>
+
+                <!-- Success Message -->
+                <div v-if="success" class="success-message">
+                    {{ success }}
+                </div>
+
+                <!-- Models List Tab -->
+                <div v-if="activeTab === 'models'" class="models-list">
+                    <div v-for="(model, key) in models" :key="key" class="model-card">
+                        <div class="model-header">
+                            <div class="model-info">
+                                <div class="model-name">{{ model.name }}</div>
+                                <div class="model-url">{{ model.baseUrl }}</div>
+                            </div>
+                            <div
+                                class="status-indicator"
+                                :class="{
+                                    'status-active': key === activeModel,
+                                    'status-inactive': key !== activeModel && modelStatuses[key] !== 'testing',
+                                    'status-testing': modelStatuses[key] === 'testing'
+                                }"
+                            ></div>
+                        </div>
+                        <div class="model-actions">
+                            <button
+                                @click="switchModel(key)"
+                                :class="['action-btn', key === activeModel ? 'btn-secondary' : 'btn-primary']"
+                                :disabled="switchingModel === key"
+                            >
+                                {{ key === activeModel ? '当前使用' : '切换' }}
+                            </button>
+                            <button @click="testModel(key)" class="action-btn btn-secondary">
+                                测试
+                            </button>
+                            <button @click="editModel(key)" class="action-btn btn-secondary">
+                                配置
+                            </button>
+                            <button
+                                v-if="model.isCustom"
+                                @click="deleteModel(key)"
+                                class="action-btn btn-danger"
+                            >
+                                删除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Tab -->
+                <div v-if="activeTab === 'status'" class="status-panel">
+                    <h3 style="margin: 0 0 15px 0; color: #323233;">系统状态</h3>
+                    <div class="status-item">
+                        <span>当前模型</span>
+                        <strong>{{ activeModel ? models[activeModel]?.name : '未选择' }}</strong>
+                    </div>
+                    <div class="status-item">
+                        <span>配置总数</span>
+                        <strong>{{ Object.keys(models).length }}</strong>
+                    </div>
+                    <div class="status-item">
+                        <span>活跃连接</span>
+                        <strong>{{ Object.values(modelStatuses).filter(s => s === 'connected').length }}</strong>
+                    </div>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #f5f5f5;">
+                        <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #323233;">模型状态</h4>
+                        <div v-for="(model, key) in models" :key="key" class="status-item">
+                            <span>{{ model.name }}</span>
+                            <span :style="{ color: getStatusColor(modelStatuses[key]) }">
+                                {{ getStatusText(modelStatuses[key]) }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div v-if="activeTab === 'settings'" class="config-form">
+                    <h3 style="margin: 0 0 15px 0; color: #323233;">全局设置</h3>
+                    <div class="form-group">
+                        <label class="form-label">自动测试连接</label>
+                        <label style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" v-model="autoTest" @change="saveSettings">
+                            <span>切换模型后自动测试连接</span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">主题颜色</label>
+                        <select v-model="theme" @change="saveSettings" class="form-input">
+                            <option value="default">默认主题</option>
+                            <option value="dark">深色主题</option>
+                            <option value="auto">自动切换</option>
+                        </select>
+                    </div>
+                    <button @click="refreshAll" class="action-btn btn-primary" style="width: 100%; margin-top: 20px;">
+                        刷新所有状态
+                    </button>
+                </div>
+            </div>
+
+            <!-- Floating Action Button -->
+            <button @click="showAddModel = true" class="floating-action-btn">
+                +
+            </button>
+
+            <!-- Tab Bar -->
+            <div class="tab-bar">
+                <div
+                    @click="activeTab = 'models'"
+                    class="tab-item"
+                    :class="{ active: activeTab === 'models' }"
+                >
+                    <div class="tab-icon">🤖</div>
+                    <div>模型</div>
+                </div>
+                <div
+                    @click="activeTab = 'status'"
+                    class="tab-item"
+                    :class="{ active: activeTab === 'status' }"
+                >
+                    <div class="tab-icon">📊</div>
+                    <div>状态</div>
+                </div>
+                <div
+                    @click="activeTab = 'settings'"
+                    class="tab-item"
+                    :class="{ active: activeTab === 'settings' }"
+                >
+                    <div class="tab-icon">⚙️</div>
+                    <div>设置</div>
+                </div>
+            </div>
+
+            <!-- Edit Model Modal -->
+            <div v-if="editingModel" class="modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center;">
+                <div style="background: white; border-radius: 12px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto;">
+                    <div style="padding: 20px;">
+                        <h3 style="margin: 0 0 20px 0; color: #323233;">编辑模型配置</h3>
+                        <div class="form-group">
+                            <label class="form-label">模型名称</label>
+                            <input v-model="editForm.name" class="form-input" type="text">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">API地址</label>
+                            <input v-model="editForm.baseUrl" class="form-input" type="text">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">API密钥</label>
+                            <input v-model="editForm.apiKey" class="form-input" type="password" placeholder="留空保持原值">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">默认模型</label>
+                            <input v-model="editForm.defaultModel" class="form-input" type="text">
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button @click="saveModelEdit" class="action-btn btn-primary" style="flex: 1;">保存</button>
+                            <button @click="editingModel = null" class="action-btn btn-secondary" style="flex: 1;">取消</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Model Modal -->
+            <div v-if="showAddModel" class="modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center;">
+                <div style="background: white; border-radius: 12px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto;">
+                    <div style="padding: 20px;">
+                        <h3 style="margin: 0 0 20px 0; color: #323233;">添加自定义模型</h3>
+                        <div class="form-group">
+                            <label class="form-label">模型标识</label>
+                            <input v-model="addForm.key" class="form-input" type="text" placeholder="例如: mymodel">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">模型名称</label>
+                            <input v-model="addForm.name" class="form-input" type="text" placeholder="例如: 我的模型">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">API地址</label>
+                            <input v-model="addForm.baseUrl" class="form-input" type="text" placeholder="https://api.example.com">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">API密钥</label>
+                            <input v-model="addForm.apiKey" class="form-input" type="password">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">默认模型</label>
+                            <input v-model="addForm.defaultModel" class="form-input" type="text" placeholder="gpt-3.5-turbo">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">描述</label>
+                            <textarea v-model="addForm.description" class="form-input form-textarea" placeholder="可选"></textarea>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button @click="addCustomModel" class="action-btn btn-primary" style="flex: 1;">添加</button>
+                            <button @click="showAddModel = false" class="action-btn btn-secondary" style="flex: 1;">取消</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

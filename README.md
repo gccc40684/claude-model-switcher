@@ -1,6 +1,13 @@
 # Claude Model Switcher
 
-多模型AI API切换器，支持Claude、Gemini、DeepSeek、Qwen、Kimi、GLM 4.5和Ollama本地模型。
+🤖 多模型AI API切换器，支持Claude、Gemini、DeepSeek、Qwen、Kimi、GLM 4.5和Ollama本地模型。
+
+## ⚠️ 系统支持
+
+**✅ 当前支持：macOS**
+**🚧 Windows版本：敬请期待**
+
+> 本项目目前仅支持macOS系统，Windows版本正在开发中。如果您需要在Windows上使用，请关注后续更新。
 
 ## 核心特性
 
@@ -10,6 +17,7 @@
 - 💾 **持久化存储**：API密钥配置一次永久保存
 - ⚙️ **灵活配置**：使用 `-e` 标志随时编辑任何模型的配置
 - 🚀 **零干扰**：Claude原生API密钥完全保留，切换回来时自动恢复
+- 📱 **H5可视化界面**：提供移动端友好的Web UI，支持可视化管理和状态监控
 
 ## 工作原理
 
@@ -146,6 +154,9 @@ $ ./claude myapi
 # 查看当前激活的模型
 ./claude current
 
+# 启动H5可视化Web界面
+./claude web         # 或 ./claude ui
+
 # 显示帮助信息
 ./claude help
 ```
@@ -157,6 +168,39 @@ $ ./claude myapi
 node src/cli.js interactive  # 交互式选择
 node src/cli.js config      # 配置API密钥
 ```
+
+## 📱 H5可视化Web界面
+
+除了命令行操作，本项目还提供了现代化的Web UI界面，支持移动端访问：
+
+### 启动Web界面
+```bash
+# 启动H5可视化界面
+./claude web
+# 或者
+./claude ui
+```
+
+### Web界面功能
+- **📋 模型管理**：可视化查看所有模型状态
+- **🎯 一键切换**：点击即可切换AI模型
+- **⚙️ 配置编辑**：图形化编辑API密钥和地址
+- **📊 状态监控**：实时显示各模型连接状态
+- **🧪 连接测试**：一键测试模型API连接
+- **➕ 自定义管理**：添加、编辑、删除自定义模型
+
+### 移动端优化
+- **📱 响应式设计**：完美适配手机和平板
+- **🚀 PWA支持**：可添加到手机主屏幕
+- **👆 触摸友好**：专为触摸操作优化
+- **💫 流畅动画**：平滑的界面过渡效果
+
+### 局域网访问
+启动后可通过以下地址访问：
+- **本地访问**：http://localhost:3000
+- **局域网访问**：http://你的IP:3000
+
+详细Web UI使用说明请参考 [WEB-UI.md](WEB-UI.md)
 
 ## 配置API密钥
 
@@ -183,7 +227,7 @@ $ ./claude kimi
 $ ./claude deepseek -e
 🔧 Editing configuration for DeepSeek
 
-? Base URL: https://api.deepseek.com
+? Base URL: https://api.deepseek.com/anthropic
 ? API Key (DEEPSEEK_API_KEY): ********
 ✅ Configuration updated for DeepSeek
 ```
@@ -198,10 +242,10 @@ $ ./claude deepseek -e
 
 - **Claude**: `https://api.anthropic.com`
 - **Gemini**: `https://generativelanguage.googleapis.com/v1beta`
-- **DeepSeek**: `https://api.deepseek.com`
-- **Qwen**: `https://dashscope.aliyuncs.com/compatible-mode/v1`
-- **Kimi**: `https://api.moonshot.cn/v1`
-- **GLM 4.5**: `https://open.bigmodel.cn/api/paas/v4`
+- **DeepSeek**: `https://api.deepseek.com/anthropic`
+- **Qwen**: `https://dashscope.aliyuncs.com/apps/anthropic`
+- **Kimi**: `https://api.moonshot.cn/anthropic`
+- **GLM 4.5**: `https://open.bigmodel.cn/api/anthropic`
 - **Ollama**: `http://localhost:11434/v1`
 
 ## 工作原理
@@ -213,6 +257,12 @@ $ ./claude deepseek -e
 
 ## 注意事项
 
+### 系统要求
+- **操作系统**：macOS 10.14 或更高版本
+- **Node.js**：14.0.0 或更高版本
+- **Shell**：zsh（macOS默认）
+
+### 使用限制
 - 切换模型后需要重启终端或运行 `source ~/.zshrc`
 - Ollama需要本地安装并运行
 - 各个云端模型需要有效的API密钥

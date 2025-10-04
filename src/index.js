@@ -45,6 +45,14 @@ async function main() {
       await switcher.showHelp();
       break;
 
+    case 'web':
+    case 'ui':
+      // 启动Web UI
+      const { default: WebServer } = await import('./web-server.js');
+      const webServer = new WebServer(3000);
+      await webServer.start();
+      break;
+
     case 'claude':
     case 'gemini':
     case 'deepseek':

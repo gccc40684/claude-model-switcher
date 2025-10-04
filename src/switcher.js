@@ -64,13 +64,26 @@ export class ModelSwitcher {
       console.log(chalk.green(`✅ Successfully switched to ${models[modelName].name}`));
       console.log(chalk.blue(`🔗 Base URL: ${models[modelName].baseUrl}`));
 
+      // Check if Claude Code settings were updated
+      const claudeSettings = await this.config.readClaudeCodeSettings();
+      if (claudeSettings && claudeSettings.env) {
+        console.log(chalk.green(`🔄 Claude Code settings.json updated:`));
+        console.log(chalk.gray(`   ANTHROPIC_BASE_URL: ${claudeSettings.env.ANTHROPIC_BASE_URL}`));
+        if (claudeSettings.env.ANTHROPIC_API_KEY) {
+          const maskedKey = claudeSettings.env.ANTHROPIC_API_KEY.slice(-4);
+          console.log(chalk.gray(`   ANTHROPIC_API_KEY: ***${maskedKey}`));
+        }
+      } else {
+        console.log(chalk.yellow(`⚠️  Claude Code settings.json not found or not updated`));
+      }
+
       // Check API key status
       if (updatedModels[modelName].apiKey) {
         console.log(chalk.green(`🔑 API Key configured`));
       }
 
       console.log(chalk.yellow('🚀 Environment updated! Claude Code is now ready to use with ' + models[modelName].name));
-      console.log(chalk.gray('💡 Starting Claude Code...'));
+      console.log(chalk.green('💡 Run "claude" in your terminal to start using ' + models[modelName].name));
 
       // Test connection
       console.log(chalk.blue('🔍 Testing connection...'));
@@ -81,9 +94,6 @@ export class ModelSwitcher {
       } else {
         console.log(chalk.yellow('⚠️  Connection test failed (this might be normal for some models)'));
       }
-
-      // Launch Claude Code application
-      await this.launchClaudeApp(models[modelName].name);
 
       return true;
     } catch (error) {
@@ -457,27 +467,13 @@ export class ModelSwitcher {
 
   async launchClaudeApp(modelName) {
     try {
-      console.log(chalk.blue(`🚀 Launching Claude CLI with ${modelName}...`));
-
-      // Launch claude command in the current terminal
-      const claude = spawn('claude', [], {
-        stdio: 'inherit',
-        env: process.env,
-        shell: true
-      });
-
-      claude.on('error', (error) => {
-        console.log(chalk.red(`❌ Error launching Claude: ${error.message}`));
-        console.log(chalk.yellow('💡 Please run "claude" manually to start the CLI'));
-      });
-
-      // Don't wait for claude to exit, just let it run
-      claude.unref();
+      console.log(chalk.blue(`🚀 Ready to launch Claude CLI with ${modelName}...`));
+      console.log(chalk.yellow('💡 Run "claude" in your terminal to start the Claude CLI'));
+      console.log(chalk.gray('   The environment is already configured for the new model'));
 
       return true;
     } catch (error) {
-      console.log(chalk.red(`❌ Error launching Claude: ${error.message}`));
-      console.log(chalk.yellow('💡 Please run "claude" manually to start the CLI'));
+      console.log(chalk.red(`❌ Error: ${error.message}`));
       return false;
     }
   }
@@ -492,6 +488,8 @@ export class ModelSwitcher {
     console.log(chalk.cyan('  claude custom               ') + chalk.gray('List custom models only'));
     console.log(chalk.cyan('  claude delete <model>       ') + chalk.gray('Delete custom model'));
     console.log(chalk.cyan('  claude current              ') + chalk.gray('Show current active model'));
+    console.log(chalk.cyan('  claude web                  ') + chalk.gray('Launch H5 web interface'));
+    console.log(chalk.cyan('  claude ui                   ') + chalk.gray('Launch H5 web interface (alias)'));
     console.log(chalk.cyan('  claude help                 ') + chalk.gray('Show this help message'));
     console.log();
     console.log(chalk.white('Built-in models:'));

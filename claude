@@ -41,6 +41,12 @@ case "$MODEL_NAME" in
                 if [ -n "$ANTHROPIC_API_KEY" ]; then
                     echo "   ANTHROPIC_API_KEY: ***${ANTHROPIC_API_KEY: -4}"
                 fi
+
+                echo ""
+                echo "🎯 For this terminal: Environment is ready!"
+                echo "💡 For new terminals: Please run 'source ~/.zshrc' or open a new terminal"
+                echo ""
+                echo "▶️  Run 'claude' to start Claude Code with $MODEL_NAME"
             else
                 echo "⚠️  Environment file not found, please try again"
             fi
@@ -66,6 +72,12 @@ case "$MODEL_NAME" in
     "help"|"h"|"--help")
         node "$SCRIPT_DIR/src/index.js" help
         ;;
+    "web"|"ui"|"--web")
+        echo "🚀 Starting Claude Model Switcher Web UI..."
+        echo "📱 Opening H5 interface at http://localhost:3000"
+        echo ""
+        node "$SCRIPT_DIR/web-start.js"
+        ;;
     *)
         if [ -n "$EDIT_FLAG" ]; then
             echo "🔧 Editing configuration for $MODEL_NAME..."
@@ -88,6 +100,12 @@ case "$MODEL_NAME" in
                 if [ -n "$ANTHROPIC_API_KEY" ]; then
                     echo "   ANTHROPIC_API_KEY: ***${ANTHROPIC_API_KEY: -4}"
                 fi
+
+                echo ""
+                echo "🎯 For this terminal: Environment is ready!"
+                echo "💡 For new terminals: Please run 'source ~/.zshrc' or open a new terminal"
+                echo ""
+                echo "▶️  Run 'claude' to start Claude Code with $MODEL_NAME"
             fi
         fi
         ;;

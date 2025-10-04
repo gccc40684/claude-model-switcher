@@ -25,31 +25,31 @@ export class ModelConfig {
       },
       deepseek: {
         name: 'DeepSeek',
-        baseUrl: 'https://api.deepseek.com',
+        baseUrl: 'https://api.deepseek.com/anthropic',
         apiKeyName: 'DEEPSEEK_API_KEY',
         apiKey: '',
         defaultModel: 'deepseek-chat'
       },
       qwen: {
         name: 'Qwen (Alibaba)',
-        baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        baseUrl: 'https://dashscope.aliyuncs.com/apps/anthropic',
         apiKeyName: 'QWEN_API_KEY',
         apiKey: '',
-        defaultModel: 'qwen-max'
+        defaultModel: 'qwen3-coder-plus'
       },
       kimi: {
         name: 'Kimi (Moonshot)',
-        baseUrl: 'https://api.moonshot.cn/v1',
+        baseUrl: 'https://api.moonshot.cn/anthropic',
         apiKeyName: 'MOONSHOT_API_KEY',
         apiKey: '',
-        defaultModel: 'moonshot-v1-8k'
+        defaultModel: 'kimi-k2-0905-preview'
       },
       glm: {
         name: 'GLM 4.5 (ZhipuAI)',
-        baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+        baseUrl: 'https://open.bigmodel.cn/api/anthropic',
         apiKeyName: 'GLM_API_KEY',
         apiKey: '',
-        defaultModel: 'glm-4-plus'
+        defaultModel: 'glm-4.5'
       },
       ollama: {
         name: 'Ollama (Local)',
@@ -173,16 +173,32 @@ export class ModelConfig {
       process.env.ANTHROPIC_API_KEY = model.apiKey;
     }
 
+    // Update Claude Code settings.json directly
+    await this.updateClaudeCodeSettings(model);
+
     // Also update shell configuration files for future sessions
     await this.updateShellConfig(model);
 
     // Create a temporary env file that can be sourced
     await this.createTempEnvFile(model);
 
+    // Create a global env file that can be sourced by new terminals
+    await this.createGlobalEnvFile(model);
+
     return true;
   }
 
   async updateShellConfig(model) {
+    // Add sourcing of our global env file to shell configs
+    const globalEnvFile = path.join(os.homedir(), '.claude-env');
+    const sourceBlock = [
+      '',
+      '# Claude Model Switcher - Auto Generated',
+      `if [ -f "${globalEnvFile}" ]; then`,
+      `  source "${globalEnvFile}"`,
+      'fi'
+    ];
+
     const shells = ['~/.zshrc', '~/.bashrc', '~/.bash_profile'];
 
     for (const shellFile of shells) {
@@ -195,21 +211,28 @@ export class ModelConfig {
         }
 
         const lines = envContent.split('\n');
+
+        // Remove ALL old Claude Model Switcher entries and orphaned fi statements
         const filteredLines = lines.filter(line =>
           !line.includes('ANTHROPIC_BASE_URL') &&
           !line.includes('ANTHROPIC_API_KEY') &&
-          !line.includes('# Claude Model Switcher')
+          !line.includes('# Claude Model Switcher') &&
+          !line.includes('.claude-env') &&
+          line.trim() !== 'fi' // Remove standalone fi
         );
 
-        filteredLines.push('');
-        filteredLines.push('# Claude Model Switcher - Auto Generated');
-        filteredLines.push(`export ANTHROPIC_BASE_URL="${model.baseUrl}"`);
-
-        if (model.apiKey) {
-          filteredLines.push(`export ANTHROPIC_API_KEY="${model.apiKey}"`);
+        // Remove any trailing empty lines
+        while (filteredLines.length > 0 && filteredLines[filteredLines.length - 1].trim() === '') {
+          filteredLines.pop();
         }
 
-        await fs.writeFile(expandedPath, filteredLines.join('\n'));
+        // Add our source block if not already present
+        const hasOurBlock = filteredLines.some(line => line.includes('.claude-env'));
+        if (!hasOurBlock) {
+          filteredLines.push(...sourceBlock);
+        }
+
+        await fs.writeFile(expandedPath, filteredLines.join('\n') + '\n');
       } catch (error) {
         // Ignore errors for shell files that don't exist
         continue;
@@ -234,6 +257,75 @@ export class ModelConfig {
     await fs.chmod(tempEnvFile, '755');
 
     return tempEnvFile;
+  }
+
+  async createGlobalEnvFile(model) {
+    const globalEnvFile = path.join(os.homedir(), '.claude-env');
+
+    const envLines = [
+      '#!/bin/bash',
+      '# Claude Model Switcher - Global Environment',
+      '# Source this file in your shell startup script',
+      `export ANTHROPIC_BASE_URL="${model.baseUrl}"`
+    ];
+
+    if (model.apiKey) {
+      envLines.push(`export ANTHROPIC_API_KEY="${model.apiKey}"`);
+    }
+
+    await fs.writeFile(globalEnvFile, envLines.join('\n') + '\n');
+    await fs.chmod(globalEnvFile, '755');
+
+    return globalEnvFile;
+  }
+
+  async updateClaudeCodeSettings(model) {
+    const claudeSettingsFile = path.join(os.homedir(), '.claude', 'settings.json');
+
+    try {
+      // Check if Claude Code settings file exists
+      if (!(await fs.pathExists(claudeSettingsFile))) {
+        console.log('Claude Code settings.json not found, skipping sync...');
+        return false;
+      }
+
+      // Read current settings
+      const settings = await fs.readJson(claudeSettingsFile);
+
+      // Ensure env object exists
+      if (!settings.env) {
+        settings.env = {};
+      }
+
+      // Update environment variables
+      settings.env.ANTHROPIC_BASE_URL = model.baseUrl;
+
+      if (model.apiKey) {
+        settings.env.ANTHROPIC_API_KEY = model.apiKey;
+      }
+
+      // Write back to file with proper formatting
+      await fs.writeJson(claudeSettingsFile, settings, { spaces: 2 });
+
+      return true;
+    } catch (error) {
+      console.error('Error updating Claude Code settings:', error);
+      return false;
+    }
+  }
+
+  async readClaudeCodeSettings() {
+    const claudeSettingsFile = path.join(os.homedir(), '.claude', 'settings.json');
+
+    try {
+      if (await fs.pathExists(claudeSettingsFile)) {
+        return await fs.readJson(claudeSettingsFile);
+      }
+      return null;
+    } catch (error) {
+      console.error('Error reading Claude Code settings:', error);
+      return null;
+    }
   }
 
   async testConnection(modelName) {
