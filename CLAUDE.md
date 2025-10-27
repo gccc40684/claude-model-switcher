@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is **Claude Code AI Model Hub v2.0.0** - a multi-model AI API switcher specifically designed for Claude Code. It provides both CLI and Apple-style Web UI for switching between different AI providers (Claude, Gemini, DeepSeek, Qwen, Kimi, GLM 4.5, and Ollama local models).
+This is **Claude Code AI Model Hub v2.0.0** - a cross-platform multi-model AI API switcher specifically designed for Claude Code. It provides both CLI and modern Web UI for switching between different AI providers (Claude, Gemini, DeepSeek, Qwen, Kimi, GLM 4.5, and Ollama local models).
 
-**Key Architecture**: The system works by mapping different model API keys to `ANTHROPIC_API_KEY` environment variable, allowing Claude Code to use different AI providers while thinking it's still talking to Claude API.
+**Key Architecture**: The system works by updating Claude Code's settings.json file directly, allowing Claude Code to use different AI providers while maintaining full compatibility across platforms (macOS, Windows, Linux).
 
 ## Common Commands
 
@@ -32,7 +32,7 @@ npm run install-global
 
 ### CLI Operations
 ```bash
-# Switch between built-in models
+# macOS/Linux
 ./claude claude      # Switch to Claude
 ./claude gemini      # Switch to Gemini
 ./claude deepseek    # Switch to DeepSeek
@@ -41,18 +41,27 @@ npm run install-global
 ./claude glm         # Switch to GLM 4.5
 ./claude ollama      # Switch to Ollama (local)
 
-# Model management
-./claude list        # List all available models
-./claude current     # Show current active model
-./claude custom      # List custom models only
+# Windows
+claude.bat claude    # Switch to Claude
+claude.bat gemini    # Switch to Gemini
+claude.bat deepseek  # Switch to DeepSeek
+claude.bat qwen      # Switch to Qwen
+claude.bat kimi      # Switch to Kimi
+claude.bat glm       # Switch to GLM 4.5
+claude.bat ollama     # Switch to Ollama (local)
+
+# Model management (all platforms)
+./claude list / claude.bat list        # List all available models
+./claude current / claude.bat current     # Show current active model
+./claude custom / claude.bat custom      # List custom models only
 
 # Custom model operations
-./claude myapi       # Create custom model "myapi"
-./claude myapi -e    # Edit custom model configuration
-./claude delete myapi # Delete custom model
+./claude myapi / claude.bat myapi       # Create custom model "myapi"
+./claude myapi -e / claude.bat myapi -e  # Edit custom model configuration
+./claude delete myapi / claude.bat delete myapi # Delete custom model
 
 # Edit built-in model configurations
-./claude kimi -e     # Edit Kimi API key/URL and model version
+./claude kimi -e / claude.bat kimi -e     # Edit Kimi API key/URL and model version
 ```
 
 **Model Version Management:**
@@ -77,12 +86,13 @@ npm run install-global
 - `web-start.js` - Web UI launcher
 
 **Core Classes:**
-- `src/config.js` - **ModelConfig** class manages all model configurations, API keys, and environment variable updates
+- `src/config.js` - **ModelConfig** class manages all model configurations, API keys, and settings.json updates
 - `src/switcher.js` - **ModelSwitcher** class handles CLI interactions and model switching logic
 - `src/web-server.js` - **WebServer** class provides RESTful API and serves Web UI
+- `src/platform.js` - **Platform** class handles cross-platform detection and configuration paths
 
 **Web Frontend:**
-- `web/` directory contains Apple-style Web UI with PWA support
+- `web/` directory contains modern cross-platform Web UI with PWA support
 - Static files served by Express server from `src/web-server.js`
 
 ### Configuration System
@@ -95,13 +105,17 @@ npm run install-global
 **Persistence:**
 - Configuration stored in `~/.claude-model-switcher/config.json`
 - Active model in `~/.claude-model-switcher/active.json`
-- Environment variables updated in `~/.claude/settings.json` (Claude Code config)
+- Claude Code settings updated directly in platform-specific locations:
+  - Windows: `%APPDATA%\Anthropic\Claude\settings.json` or `%USERPROFILE%\.claude\settings.json`
+  - macOS/Linux: `~/.claude/settings.json`
 
 **Environment Management:**
-- All models map their API keys to `ANTHROPIC_API_KEY`
+- All models map their API keys to `ANTHROPIC_API_KEY` in Claude Code settings
 - `ANTHROPIC_BASE_URL` set to model's API endpoint
-- `ANTHROPIC_MODEL` only set when user specifies a custom model version, otherwise removed from settings.json
-- Shell configs (`~/.zshrc`, `~/.bashrc`) updated with sourcing block
+- `ANTHROPIC_MODEL` only set when user specifies a custom model version
+- Platform-specific shell config updates (macOS/Linux only):
+  - Shell configs (`~/.zshrc`, `~/.bashrc`) updated with sourcing block
+  - Windows: Direct settings.json updates, no shell configuration needed
 - Model version intelligently selected: Claude models use aliases (sonnet, opus, haiku), other providers use specific model names
 
 ### API Endpoints (Web Server)
@@ -133,8 +147,8 @@ npm run install-global
 
 ### API Key Security
 - API keys stored in plaintext in `~/.claude-model-switcher/config.json`
-- Keys are written to `~/.claude/settings.json` when model is active
-- Shell configuration files contain environment variable exports
+- Keys are written to Claude Code settings.json when model is active
+- Shell configuration files contain environment variable exports (macOS/Linux only)
 
 ### Model Compatibility
 - Built-in models use specific API formats (Claude API, OpenAI-compatible, etc.)
@@ -142,10 +156,12 @@ npm run install-global
 - Ollama runs locally and doesn't require API key
 
 ### System Integration
-- Designed specifically for macOS (zsh shell)
-- Modifies shell configuration files automatically
+- Cross-platform support: macOS, Windows 10/11, Linux
+- Platform-specific configuration handling:
+  - macOS/Linux: Modifies shell configuration files automatically
+  - Windows: Direct settings.json updates, no shell configuration needed
 - Updates Claude Code settings directly
-- Requires terminal restart or `source ~/.zshrc` for changes to take effect
+- Changes take effect immediately on Windows, restart terminal on macOS/Linux
 
 ### Error Handling
 - Connection testing available for all models
@@ -155,4 +171,6 @@ npm run install-global
 
 ## Development Context
 
-This is a v2.0.0 rewrite that consolidated a dual-Node.js project architecture into a single unified codebase with both CLI and Web UI capabilities. The project focuses on providing a seamless Apple-style user experience while maintaining powerful CLI functionality for power users.
+This is a v2.0.0 rewrite that consolidated a dual-Node.js project architecture into a single unified codebase with both CLI and Web UI capabilities. The project focuses on providing a seamless cross-platform user experience while maintaining powerful CLI functionality for power users.
+
+**Windows Support Added**: The latest version includes full Windows compatibility through platform detection, direct settings.json manipulation, and a dedicated Windows batch script (claude.bat).

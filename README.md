@@ -4,7 +4,7 @@
 
 ## 🌟 项目亮点
 
-**✨ Apple风格现代化界面** - 采用macOS设计语言的Web UI，支持PWA应用
+**✨ 跨平台现代化界面** - 采用现代化设计语言的Web UI，支持PWA应用
 **🎯 一键模型切换** - 命令行和可视化界面双重操作方式
 **🔐 智能密钥管理** - 每个模型独立保存API密钥，切换时不会覆盖
 **📱 移动端优化** - 响应式设计，完美适配手机、平板、桌面设备
@@ -12,10 +12,12 @@
 
 ## ⚠️ 系统支持
 
-**✅ 当前支持：macOS 10.14+**
-**🚧 Windows版本：敬请期待**
+**✅ 当前支持：**
+- **macOS 10.14+** - 完整功能支持
+- **Windows 10/11** - 核心功能支持 🆕
+- **Linux** - 基础功能支持
 
-> 本项目专为macOS系统设计，暂不支持Windows。Windows版本正在开发中，敬请期待！
+> 🎉 Windows版本现已发布！支持完整的模型切换和配置管理功能。
 
 ## 🚀 快速上手
 
@@ -29,22 +31,33 @@ chmod +x claude
 
 ### 2. 启动Web界面（推荐）
 ```bash
+# macOS/Linux
 ./claude web
+
+# Windows
+claude.bat web
+# 或双击 claude.bat 文件
+
 # 浏览器自动打开 http://localhost:3000
 ```
 
 ### 3. 或使用命令行
 ```bash
-# 切换到Claude模型
+# macOS/Linux
 ./claude claude
-
-# 切换到其他模型
 ./claude kimi
 ./claude deepseek
 ./claude qwen
 
+# Windows
+claude.bat claude
+claude.bat kimi
+claude.bat deepseek
+claude.bat qwen
+
 # 查看所有模型
-./claude list
+./claude list    # macOS/Linux
+claude.bat list  # Windows
 ```
 
 ## 📸 界面预览
@@ -71,6 +84,12 @@ chmod +x claude
 ### 🌙 深色模式
 - **自动切换**：根据系统主题自动切换
 - **护眼配色**：精心调校的深色配色方案
+
+### 🪟 Windows 专用功能
+- **原生配置**：直接更新Claude Code settings.json文件
+- **无需环境变量**：Windows下不需要配置系统环境变量
+- **批处理脚本**：提供完整的命令行支持
+- **跨终端兼容**：支持CMD、PowerShell、Windows Terminal
 
 ## 🎯 核心特性
 
@@ -347,12 +366,19 @@ $ ./claude deepseek -e
 ## 注意事项
 
 ### 系统要求
-- **操作系统**：macOS 10.14 或更高版本
+- **操作系统**：
+  - macOS 10.14+ （完整功能支持）
+  - Windows 10/11 （核心功能支持）
+  - Linux （基础功能支持）
 - **Node.js**：14.0.0 或更高版本
-- **Shell**：zsh（macOS默认）
+- **Shell**：
+  - macOS：zsh（默认）、bash
+  - Windows：CMD、PowerShell、Windows Terminal
+  - Linux：bash、zsh
 
 ### 使用限制
-- 切换模型后需要重启终端或运行 `source ~/.zshrc`
+- **macOS/Linux**：切换模型后需要重启终端或运行 `source ~/.zshrc`
+- **Windows**：配置立即生效，无需重启终端
 - Ollama需要本地安装并运行
 - 各个云端模型需要有效的API密钥
 - 程序会自动备份原有的环境变量配置
@@ -361,18 +387,36 @@ $ ./claude deepseek -e
 
 ### 常见问题
 
-1. **权限错误**: 确保脚本有执行权限 `chmod +x claude`
+1. **权限错误**:
+   - macOS/Linux: 确保脚本有执行权限 `chmod +x claude`
+   - Windows: 确保可以执行批处理文件
+
 2. **模块未找到**: 运行 `npm install` 安装依赖
+
 3. **API连接失败**: 检查API密钥和网络连接
-4. **环境变量未生效**: 重启终端或手动source配置文件
+
+4. **环境变量未生效**:
+   - macOS/Linux: 重启终端或手动source配置文件
+   - Windows: 配置应该立即生效，检查Claude Code安装路径
+
+5. **Windows下Claude Code找不到配置**:
+   - 检查 `C:\Users\[用户名]\AppData\Roaming\Anthropic\Claude\settings.json`
+   - 或 `C:\Users\[用户名]\.claude\settings.json`
 
 ### 手动重置
 
 如果出现问题，可以手动清理配置：
 
+**macOS/Linux:**
 ```bash
 rm -rf ~/.claude-model-switcher
-# 手动编辑 ~/.zshrc 移除相关环境变量
+# 手动编辑 ~/.zshrc 或 ~/.bashrc 移除相关环境变量
+```
+
+**Windows:**
+```cmd
+rmdir /s "%USERPROFILE%\.claude-model-switcher"
+# 手动删除 %APPDATA%\Anthropic\Claude\settings.json 中的相关配置
 ```
 
 ## 开发

@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
+import { Platform } from './platform.js';
 
 export class ModelConfig {
   constructor() {
@@ -187,22 +188,36 @@ export class ModelConfig {
       process.env.ANTHROPIC_API_KEY = model.apiKey;
     }
 
-    // Update Claude Code settings.json directly
+    // Update Claude Code settings.json directly (works on all platforms)
     await this.updateClaudeCodeSettings(model);
 
-    // Also update shell configuration files for future sessions
-    await this.updateShellConfig(model);
+    // Platform-specific shell configuration (only for Unix-like systems)
+    if (Platform.supportsShellConfig()) {
+      // Also update shell configuration files for future sessions
+      await this.updateShellConfig(model);
 
-    // Create a temporary env file that can be sourced
-    await this.createTempEnvFile(model);
+      // Create a temporary env file that can be sourced
+      await this.createTempEnvFile(model);
 
-    // Create a global env file that can be sourced by new terminals
-    await this.createGlobalEnvFile(model);
+      // Create a global env file that can be sourced by new terminals
+      await this.createGlobalEnvFile(model);
+    } else {
+      // Windows-specific: Claude Code reads settings.json directly
+      console.log('💻 Windows detected: Updated Claude Code settings.json directly');
+    }
 
     return true;
   }
 
   async updateShellConfig(model) {
+    // Get platform-specific shell configuration files
+    const shellFiles = Platform.getShellConfigFiles();
+
+    if (shellFiles.length === 0) {
+      // Windows doesn't use shell configs in the same way
+      return;
+    }
+
     // Add sourcing of our global env file to shell configs
     const globalEnvFile = path.join(os.homedir(), '.claude-env');
     const sourceBlock = [
@@ -213,10 +228,7 @@ export class ModelConfig {
       'fi'
     ];
 
-    const shells = ['~/.zshrc', '~/.bashrc', '~/.bash_profile'];
-
-    for (const shellFile of shells) {
-      const expandedPath = shellFile.replace('~', os.homedir());
+    for (const shellFile of shellFiles) {
 
       try {
         let envContent = '';
@@ -268,7 +280,12 @@ export class ModelConfig {
     }
 
     await fs.writeFile(tempEnvFile, envLines.join('\n') + '\n');
-    await fs.chmod(tempEnvFile, '755');
+
+    // Set file permissions only on Unix-like systems
+    const permissions = Platform.getFilePermissions();
+    if (permissions) {
+      await fs.chmod(tempEnvFile, permissions);
+    }
 
     return tempEnvFile;
   }
@@ -288,19 +305,36 @@ export class ModelConfig {
     }
 
     await fs.writeFile(globalEnvFile, envLines.join('\n') + '\n');
-    await fs.chmod(globalEnvFile, '755');
+
+    // Set file permissions only on Unix-like systems
+    const permissions = Platform.getFilePermissions();
+    if (permissions) {
+      await fs.chmod(globalEnvFile, permissions);
+    }
 
     return globalEnvFile;
   }
 
   async updateClaudeCodeSettings(model) {
-    const claudeSettingsFile = path.join(os.homedir(), '.claude', 'settings.json');
+    // Get platform-specific Claude settings file path
+    const claudeSettingsFile = Platform.getClaudeSettingsPath();
 
     try {
       // Check if Claude Code settings file exists
       if (!(await fs.pathExists(claudeSettingsFile))) {
-        console.log('Claude Code settings.json not found, skipping sync...');
-        return false;
+        console.log(`Claude Code settings.json not found at ${claudeSettingsFile}, creating it...`);
+
+        // Try to create the settings file and directory
+        await fs.ensureDir(path.dirname(claudeSettingsFile));
+
+        // Create initial settings structure
+        const initialSettings = {
+          env: {},
+          model: model.defaultModel
+        };
+
+        await fs.writeJson(claudeSettingsFile, initialSettings, { spaces: 2 });
+        console.log('✅ Created new Claude Code settings.json');
       }
 
       // Read current settings
@@ -390,7 +424,7 @@ export class ModelConfig {
   }
 
   async readClaudeCodeSettings() {
-    const claudeSettingsFile = path.join(os.homedir(), '.claude', 'settings.json');
+    const claudeSettingsFile = Platform.getClaudeSettingsPath();
 
     try {
       if (await fs.pathExists(claudeSettingsFile)) {
