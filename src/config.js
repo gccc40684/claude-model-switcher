@@ -14,49 +14,63 @@ export class ModelConfig {
         baseUrl: 'https://api.anthropic.com',
         apiKeyName: 'ANTHROPIC_API_KEY',
         apiKey: '',
-        defaultModel: 'claude-3-5-sonnet-20241022'
+        defaultModel: 'sonnet', // Use Claude Code model alias for better experience
+        recommendedModel: 'sonnet',
+        specificModel: 'claude-3-5-sonnet-20241022' // Fallback specific model
       },
       gemini: {
         name: 'Gemini (Google)',
         baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
         apiKeyName: 'GEMINI_API_KEY',
         apiKey: '',
-        defaultModel: 'gemini-2.0-flash-exp'
+        defaultModel: 'gemini-2.0-flash-exp',
+        recommendedModel: 'gemini-2.0-flash-exp',
+        modelAlias: null // Gemini doesn't use Claude Code aliases
       },
       deepseek: {
         name: 'DeepSeek',
         baseUrl: 'https://api.deepseek.com/anthropic',
         apiKeyName: 'DEEPSEEK_API_KEY',
         apiKey: '',
-        defaultModel: 'deepseek-chat'
+        defaultModel: 'deepseek-chat',
+        recommendedModel: 'deepseek-chat',
+        modelAlias: null
       },
       qwen: {
         name: 'Qwen (Alibaba)',
         baseUrl: 'https://dashscope.aliyuncs.com/apps/anthropic',
         apiKeyName: 'QWEN_API_KEY',
         apiKey: '',
-        defaultModel: 'qwen3-coder-plus'
+        defaultModel: 'qwen3-coder-plus',
+        recommendedModel: 'qwen3-coder-plus',
+        modelAlias: null
       },
       kimi: {
         name: 'Kimi (Moonshot)',
         baseUrl: 'https://api.moonshot.cn/anthropic',
         apiKeyName: 'MOONSHOT_API_KEY',
         apiKey: '',
-        defaultModel: 'kimi-k2-0905-preview'
+        defaultModel: 'kimi-k2-0905-preview',
+        recommendedModel: 'kimi-k2-0905-preview',
+        modelAlias: null
       },
       glm: {
         name: 'GLM 4.5 (ZhipuAI)',
         baseUrl: 'https://open.bigmodel.cn/api/anthropic',
         apiKeyName: 'GLM_API_KEY',
         apiKey: '',
-        defaultModel: 'glm-4.5'
+        defaultModel: 'glm-4.5',
+        recommendedModel: 'glm-4.5',
+        modelAlias: null
       },
       ollama: {
         name: 'Ollama (Local)',
         baseUrl: 'http://localhost:11434/v1',
         apiKeyName: null,
         apiKey: 'ollama',
-        defaultModel: 'llama3.2'
+        defaultModel: 'llama3.2',
+        recommendedModel: 'llama3.2',
+        modelAlias: null
       }
     };
   }
@@ -304,12 +318,73 @@ export class ModelConfig {
         settings.env.ANTHROPIC_API_KEY = model.apiKey;
       }
 
+      // Set model version in settings.json
+      const modelToUse = this.getModelForSettings(model);
+      if (modelToUse) {
+        settings.model = modelToUse;
+        console.log(`🎯 Model set to: ${modelToUse}`);
+      }
+
+      // Only set ANTHROPIC_MODEL if user has specified a custom model version
+      if (model.userSelectedModel) {
+        settings.env.ANTHROPIC_MODEL = model.userSelectedModel;
+      } else {
+        // Remove ANTHROPIC_MODEL if no custom model version is specified
+        delete settings.env.ANTHROPIC_MODEL;
+      }
+
       // Write back to file with proper formatting
       await fs.writeJson(claudeSettingsFile, settings, { spaces: 2 });
 
       return true;
     } catch (error) {
       console.error('Error updating Claude Code settings:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get the appropriate model identifier for Claude Code settings
+   * @param {Object} model - Model configuration object
+   * @returns {string} - Model identifier to use in settings.json
+   */
+  getModelForSettings(model) {
+    // If user has specified a custom model version, use it
+    if (model.userSelectedModel) {
+      return model.userSelectedModel;
+    }
+
+    // For Claude, use the recommended alias for better experience
+    if (model.recommendedModel && (model.name.includes('Claude') || model.name.includes('Anthropic'))) {
+      return model.recommendedModel; // e.g., 'sonnet', 'opus', 'haiku'
+    }
+
+    // For other providers, use the specific model name
+    return model.recommendedModel || model.defaultModel;
+  }
+
+  /**
+   * Allow user to specify a custom model version for a given model
+   * @param {string} modelName - Model key (e.g., 'claude', 'gemini')
+   * @param {string} customModel - Custom model identifier
+   */
+  async setCustomModelVersion(modelName, customModel) {
+    try {
+      const models = await this.loadConfig();
+
+      if (!models[modelName]) {
+        throw new Error(`Model ${modelName} not found`);
+      }
+
+      // Store user's custom model preference
+      models[modelName].userSelectedModel = customModel;
+
+      await this.saveConfig(models);
+
+      console.log(`✅ Custom model version set for ${models[modelName].name}: ${customModel}`);
+      return true;
+    } catch (error) {
+      console.error(`Error setting custom model version: ${error.message}`);
       return false;
     }
   }

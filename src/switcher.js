@@ -369,14 +369,32 @@ export class ModelSwitcher {
       const model = models[modelName];
       console.log(chalk.blue(`🔧 Editing configuration for ${model.name}\n`));
 
-      const { baseUrl } = await inquirer.prompt([
+      const editPrompts = [
         {
           type: 'input',
           name: 'baseUrl',
           message: 'Base URL:',
           default: model.baseUrl
         }
-      ]);
+      ];
+
+      // Add model version selection for built-in models
+      if (!model.isCustom) {
+        editPrompts.push({
+          type: 'input',
+          name: 'customModel',
+          message: 'Model version (leave empty to use recommended):',
+          default: model.userSelectedModel || '',
+          validate: (input) => {
+            if (input && input.trim() === '') {
+              return 'Model version cannot be empty if specified';
+            }
+            return true;
+          }
+        });
+      }
+
+      const { baseUrl, customModel } = await inquirer.prompt(editPrompts);
 
       if (model.isCustom) {
         // For custom models, allow editing all fields
@@ -424,16 +442,7 @@ export class ModelSwitcher {
           models[modelName].apiKey = editInfo.apiKey.trim();
         }
       } else {
-        // For built-in models, only allow editing URL and API key
-        const { baseUrl } = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'baseUrl',
-            message: 'Base URL:',
-            default: model.baseUrl
-          }
-        ]);
-
+        // For built-in models, handle API key and model version
         let apiKey = model.apiKey;
         if (model.apiKeyName) {
           const result = await inquirer.prompt([
@@ -452,6 +461,15 @@ export class ModelSwitcher {
         models[modelName].baseUrl = baseUrl;
         if (apiKey) {
           models[modelName].apiKey = apiKey;
+        }
+
+        // Handle custom model version if provided
+        if (customModel && customModel.trim()) {
+          models[modelName].userSelectedModel = customModel.trim();
+          console.log(chalk.blue(`🎯 Custom model version set: ${customModel.trim()}`));
+        } else {
+          // Clear custom model version if user left it empty
+          delete models[modelName].userSelectedModel;
         }
       }
 

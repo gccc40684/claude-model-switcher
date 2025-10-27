@@ -110,6 +110,40 @@ export class WebServer {
       }
     });
 
+    // 设置自定义模型版本
+    this.app.put('/api/models/:modelName/version', async (req, res) => {
+      try {
+        const { modelName } = req.params;
+        const { modelVersion } = req.body;
+
+        if (!modelVersion || typeof modelVersion !== 'string') {
+          return res.status(400).json({
+            success: false,
+            error: 'Model version is required and must be a string'
+          });
+        }
+
+        const success = await this.configManager.setCustomModelVersion(modelName, modelVersion.trim());
+
+        if (success) {
+          res.json({
+            success: true,
+            message: `Custom model version set for ${modelName}: ${modelVersion.trim()}`
+          });
+        } else {
+          res.status(500).json({
+            success: false,
+            error: 'Failed to set custom model version'
+          });
+        }
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+    });
+
     // 测试模型连接
     this.app.post('/api/models/:modelName/test', async (req, res) => {
       try {
