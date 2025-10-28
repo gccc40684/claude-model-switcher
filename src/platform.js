@@ -62,18 +62,8 @@ export class Platform {
    * @returns {string} - Path to settings.json file
    */
   static getClaudeSettingsPath(type = 'global') {
-    if (this.isWindows()) {
-      const appDataPath = process.env.APPDATA;
-      if (appDataPath) {
-        // Primary Windows location: AppData\Anthropic\Claude\settings.json
-        return path.join(appDataPath, 'Anthropic', 'Claude', 'settings.json');
-      }
-      // Fallback: User\.claude\settings.json
-      return path.join(os.homedir(), '.claude', 'settings.json');
-    } else {
-      // macOS/Linux: ~/.claude/settings.json
-      return path.join(os.homedir(), '.claude', 'settings.json');
-    }
+    // Claude Code uses ~/.claude/settings.json on all platforms
+    return path.join(os.homedir(), '.claude', 'settings.json');
   }
 
   /**

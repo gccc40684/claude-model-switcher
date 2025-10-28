@@ -229,11 +229,10 @@ export class ModelConfig {
     ];
 
     for (const shellFile of shellFiles) {
-
       try {
         let envContent = '';
-        if (await fs.pathExists(expandedPath)) {
-          envContent = await fs.readFile(expandedPath, 'utf8');
+        if (await fs.pathExists(shellFile)) {
+          envContent = await fs.readFile(shellFile, 'utf8');
         }
 
         const lines = envContent.split('\n');
@@ -258,7 +257,7 @@ export class ModelConfig {
           filteredLines.push(...sourceBlock);
         }
 
-        await fs.writeFile(expandedPath, filteredLines.join('\n') + '\n');
+        await fs.writeFile(shellFile, filteredLines.join('\n') + '\n');
       } catch (error) {
         // Ignore errors for shell files that don't exist
         continue;
@@ -348,8 +347,12 @@ export class ModelConfig {
       // Update environment variables
       settings.env.ANTHROPIC_BASE_URL = model.baseUrl;
 
+      // Always update API key (clear it if not set)
       if (model.apiKey) {
         settings.env.ANTHROPIC_API_KEY = model.apiKey;
+      } else {
+        // Remove API key if not set for current model
+        delete settings.env.ANTHROPIC_API_KEY;
       }
 
       // Set model version in settings.json
